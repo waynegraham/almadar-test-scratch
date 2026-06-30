@@ -1,166 +1,9 @@
 import Link from "next/link";
-import qs from "qs";
-
-const STRAPI_BASE_URL = "http://localhost:1337";
-const IIIF_IMAGE_BASE_URL = "https://iiif-almadar-test.foxfirelab.com/iiif/3";
-const PAGE_SIZE = 25;
-
-type StrapiRelation<T> =
-  | T[]
-  | {
-      data?: T[];
-    };
-
-type StrapiImage = {
-  id?: number | string;
-  sequence?: number;
-  label?: string | null;
-  cantaloupeIdentifier?: string | null;
-  infoJsonUrl?: string | null;
-  attributes?: Omit<StrapiImage, "attributes">;
-};
-
-type StrapiAsset = {
-  id?: number | string;
-  title?: string | null;
-  iiifBaseUrl?: string | null;
-  images?: StrapiRelation<StrapiImage>;
-  attributes?: Omit<StrapiAsset, "attributes">;
-};
-
-type StrapiWork = {
-  id?: number | string;
-  documentId?: string;
-  iabCode?: string | null;
-  displayTitle?: string | null;
-  titleEn?: string | null;
-  titleAr?: string | null;
-  iiif_assets?: StrapiRelation<StrapiAsset>;
-  attributes?: Omit<StrapiWork, "attributes">;
-};
-
-type StrapiWorksResponse = {
-  data?: StrapiWork[];
-  meta?: {
-    pagination?: {
-      page?: number;
-      pageSize?: number;
-      pageCount?: number;
-      total?: number;
-    };
-  };
-};
-
-type WorkCard = {
-  id: string;
-  iabCode: string;
-  title: string;
-  subtitle?: string;
-  imageLabel?: string;
-  thumbnailUrl?: string;
-};
+import { getWorks, STRAPI_BASE_URL, worksQuery } from "@/lib/works";
 
 type PageSearchParams = Promise<{
   page?: string | string[];
 }>;
-
-function worksQuery(page: number) {
-  return qs.stringify(
-    {
-      status: "published",
-      pagination: {
-        page,
-        pageSize: PAGE_SIZE,
-      },
-      sort: ["iabCode:asc"],
-      filters: {
-        iabCode: {
-          $startsWith: "25-",
-        },
-      },
-      fields: ["iabCode", "displayTitle", "titleEn", "titleAr"],
-      populate: {
-        iiif_assets: {
-          fields: ["title", "iiifBaseUrl"],
-          populate: {
-            images: {
-              filters: {
-                sequence: {
-                  $eq: 1,
-                },
-              },
-              fields: ["sequence", "label", "cantaloupeIdentifier", "infoJsonUrl"],
-              sort: ["sequence:asc"],
-            },
-          },
-        },
-      },
-    },
-    {
-      encodeValuesOnly: true,
-    },
-  );
-}
-
-function unwrapAttributes<T extends { attributes?: Omit<T, "attributes"> }>(
-  item: T,
-): Omit<T, "attributes"> {
-  return (item.attributes ?? item) as Omit<T, "attributes">;
-}
-
-function relationItems<T>(relation?: StrapiRelation<T>): T[] {
-  if (!relation) {
-    return [];
-  }
-
-  if (Array.isArray(relation)) {
-    return relation;
-  }
-
-  return relation.data ?? [];
-}
-
-function encodeIiifIdentifier(identifier: string): string {
-  try {
-    return encodeURIComponent(decodeURIComponent(identifier));
-  } catch {
-    return encodeURIComponent(identifier);
-  }
-}
-
-function thumbnailUrlFor(image?: Omit<StrapiImage, "attributes">) {
-  if (!image?.cantaloupeIdentifier) {
-    return undefined;
-  }
-
-  return `${IIIF_IMAGE_BASE_URL}/${encodeIiifIdentifier(
-    image.cantaloupeIdentifier,
-  )}/full/256,/0/default.png`;
-}
-
-function workTitle(work: Omit<StrapiWork, "attributes">) {
-  return (
-    work.displayTitle?.trim() ||
-    work.titleEn?.trim() ||
-    work.titleAr?.trim() ||
-    "Untitled work"
-  );
-}
-
-function normalizeWork(work: StrapiWork): WorkCard {
-  const item = unwrapAttributes(work);
-  const asset = relationItems(item.iiif_assets).map(unwrapAttributes).at(0);
-  const image = relationItems(asset?.images).map(unwrapAttributes).at(0);
-
-  return {
-    id: String(work.id ?? item.documentId ?? item.iabCode ?? crypto.randomUUID()),
-    iabCode: item.iabCode ?? "No IAB code",
-    title: workTitle(item),
-    subtitle: asset?.title ?? undefined,
-    imageLabel: image?.label ?? undefined,
-    thumbnailUrl: thumbnailUrlFor(image),
-  };
-}
 
 function currentPageFrom(searchParams: Awaited<PageSearchParams>) {
   const rawPage = Array.isArray(searchParams.page)
@@ -275,26 +118,6 @@ function Pagination({
   );
 }
 
-async function getWorks(page: number) {
-  const query = worksQuery(page);
-  const url = `${STRAPI_BASE_URL}/api/works?${query}`;
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Strapi returned ${response.status} ${response.statusText}`);
-  }
-
-  const payload = (await response.json()) as StrapiWorksResponse;
-
-  return {
-    url,
-    works: (payload.data ?? []).map(normalizeWork),
-    pagination: payload.meta?.pagination,
-  };
-}
-
 export default async function Home({
   searchParams,
 }: {
@@ -351,9 +174,10 @@ export default async function Home({
         {data && data.works.length > 0 ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.works.map((work) => (
-              <article
+              <Link
                 key={work.id}
-                className="overflow-hidden border border-stone-300 bg-white shadow-sm"
+                href={`/works/${encodeURIComponent(work.iabCode)}`}
+                className="group overflow-hidden border border-stone-300 bg-white shadow-sm transition-colors hover:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
               >
                 <div className="aspect-[4/3] bg-stone-200">
                   {work.thumbnailUrl ? (
@@ -374,7 +198,7 @@ export default async function Home({
                     {work.iabCode}
                   </p>
                   <div>
-                    <h2 className="line-clamp-3 text-lg font-semibold leading-6">
+                    <h2 className="line-clamp-3 text-lg font-semibold leading-6 group-hover:underline">
                       {work.title}
                     </h2>
                     {work.subtitle ? (
@@ -384,7 +208,7 @@ export default async function Home({
                     ) : null}
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         ) : null}
