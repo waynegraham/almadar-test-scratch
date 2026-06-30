@@ -1,7 +1,9 @@
+import Link from "next/link";
 import qs from "qs";
 
 const STRAPI_BASE_URL = "http://localhost:1337";
 const IIIF_IMAGE_BASE_URL = "https://iiif-almadar-test.foxfirelab.com/iiif/3";
+const PAGE_SIZE = 25;
 
 type StrapiRelation<T> =
   | T[]
@@ -58,41 +60,47 @@ type WorkCard = {
   thumbnailUrl?: string;
 };
 
-const query = qs.stringify(
-  {
-    status: "published",
-    pagination: {
-      page: 1,
-      pageSize: 25,
-    },
-    sort: ["iabCode:asc"],
-    filters: {
-      iabCode: {
-        $startsWith: "25-",
+type PageSearchParams = Promise<{
+  page?: string | string[];
+}>;
+
+function worksQuery(page: number) {
+  return qs.stringify(
+    {
+      status: "published",
+      pagination: {
+        page,
+        pageSize: PAGE_SIZE,
       },
-    },
-    fields: ["iabCode", "displayTitle", "titleEn", "titleAr"],
-    populate: {
-      iiif_assets: {
-        fields: ["title", "iiifBaseUrl"],
-        populate: {
-          images: {
-            filters: {
-              sequence: {
-                $eq: 1,
+      sort: ["iabCode:asc"],
+      filters: {
+        iabCode: {
+          $startsWith: "25-",
+        },
+      },
+      fields: ["iabCode", "displayTitle", "titleEn", "titleAr"],
+      populate: {
+        iiif_assets: {
+          fields: ["title", "iiifBaseUrl"],
+          populate: {
+            images: {
+              filters: {
+                sequence: {
+                  $eq: 1,
+                },
               },
+              fields: ["sequence", "label", "cantaloupeIdentifier", "infoJsonUrl"],
+              sort: ["sequence:asc"],
             },
-            fields: ["sequence", "label", "cantaloupeIdentifier", "infoJsonUrl"],
-            sort: ["sequence:asc"],
           },
         },
       },
     },
-  },
-  {
-    encodeValuesOnly: true,
-  },
-);
+    {
+      encodeValuesOnly: true,
+    },
+  );
+}
 
 function unwrapAttributes<T extends { attributes?: Omit<T, "attributes"> }>(
   item: T,
@@ -154,7 +162,121 @@ function normalizeWork(work: StrapiWork): WorkCard {
   };
 }
 
-async function getWorks() {
+function currentPageFrom(searchParams: Awaited<PageSearchParams>) {
+  const rawPage = Array.isArray(searchParams.page)
+    ? searchParams.page[0]
+    : searchParams.page;
+  const page = Number(rawPage);
+
+  if (!Number.isInteger(page) || page < 1) {
+    return 1;
+  }
+
+  return page;
+}
+
+function pageHref(page: number) {
+  return page === 1 ? "/" : `/?page=${page}`;
+}
+
+function paginationRange(currentPage: number, pageCount: number) {
+  const pages = new Set([1, pageCount]);
+
+  for (let page = currentPage - 2; page <= currentPage + 2; page += 1) {
+    if (page > 1 && page < pageCount) {
+      pages.add(page);
+    }
+  }
+
+  const sortedPages = [...pages].sort((a, b) => a - b);
+
+  return sortedPages.flatMap((page, index) => {
+    const previousPage = sortedPages[index - 1];
+
+    if (previousPage && page - previousPage > 1) {
+      return ["ellipsis", page] as const;
+    }
+
+    return [page] as const;
+  });
+}
+
+function Pagination({
+  page,
+  pageCount,
+  total,
+}: {
+  page: number;
+  pageCount: number;
+  total?: number;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  const currentPage = Math.min(page, pageCount);
+  const previousPage = currentPage - 1;
+  const nextPage = currentPage + 1;
+  const controlClass =
+    "flex h-10 min-w-10 items-center justify-center border border-stone-300 bg-white px-3 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white";
+  const disabledClass =
+    "flex h-10 min-w-10 items-center justify-center border border-stone-200 bg-stone-100 px-3 text-sm font-medium text-stone-400";
+
+  return (
+    <nav
+      aria-label="Collection pagination"
+      className="flex flex-col gap-3 border-t border-stone-300 pt-6 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="text-sm text-stone-600">
+        Page {currentPage} of {pageCount}
+        {typeof total === "number" ? ` · ${total} works` : ""}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {previousPage >= 1 ? (
+          <Link className={controlClass} href={pageHref(previousPage)}>
+            Previous
+          </Link>
+        ) : (
+          <span className={disabledClass}>Previous</span>
+        )}
+
+        {paginationRange(currentPage, pageCount).map((item, index) =>
+          item === "ellipsis" ? (
+            <span
+              key={`ellipsis-${index}`}
+              className="flex h-10 min-w-10 items-center justify-center text-sm text-stone-500"
+            >
+              ...
+            </span>
+          ) : item === currentPage ? (
+            <span
+              key={item}
+              aria-current="page"
+              className="flex h-10 min-w-10 items-center justify-center border border-stone-900 bg-stone-900 px-3 text-sm font-medium text-white"
+            >
+              {item}
+            </span>
+          ) : (
+            <Link key={item} className={controlClass} href={pageHref(item)}>
+              {item}
+            </Link>
+          ),
+        )}
+
+        {nextPage <= pageCount ? (
+          <Link className={controlClass} href={pageHref(nextPage)}>
+            Next
+          </Link>
+        ) : (
+          <span className={disabledClass}>Next</span>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+async function getWorks(page: number) {
+  const query = worksQuery(page);
   const url = `${STRAPI_BASE_URL}/api/works?${query}`;
   const response = await fetch(url, {
     cache: "no-store",
@@ -173,12 +295,18 @@ async function getWorks() {
   };
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: PageSearchParams;
+}) {
   let data: Awaited<ReturnType<typeof getWorks>> | undefined;
   let error: string | undefined;
+  const requestedPage = currentPageFrom(await searchParams);
+  const fallbackQuery = worksQuery(requestedPage);
 
   try {
-    data = await getWorks();
+    data = await getWorks(requestedPage);
   } catch (caught) {
     error = caught instanceof Error ? caught.message : "Unable to load works.";
   }
@@ -209,7 +337,7 @@ export default async function Home() {
             <h2 className="font-semibold">Could not load Strapi data</h2>
             <p className="mt-2">{error}</p>
             <p className="mt-3 break-all text-amber-900">
-              Expected endpoint: {STRAPI_BASE_URL}/api/works?{query}
+              Expected endpoint: {STRAPI_BASE_URL}/api/works?{fallbackQuery}
             </p>
           </section>
         ) : null}
@@ -259,6 +387,14 @@ export default async function Home() {
               </article>
             ))}
           </div>
+        ) : null}
+
+        {data?.pagination ? (
+          <Pagination
+            page={data.pagination.page ?? requestedPage}
+            pageCount={data.pagination.pageCount ?? 1}
+            total={data.pagination.total}
+          />
         ) : null}
 
         {data ? (
