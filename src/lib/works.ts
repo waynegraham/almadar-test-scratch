@@ -1,8 +1,19 @@
 import qs from "qs";
+import {
+  encodeIiifIdentifier,
+  IIIF_IMAGE_BASE_URL,
+  iiifImageUrlForIdentifier,
+  iiifThumbnailSrcSetForIdentifier,
+} from "./iiif";
 
 export const STRAPI_BASE_URL = "http://localhost:1337";
-export const IIIF_IMAGE_BASE_URL = "https://iiif-almadar-test.foxfirelab.com/iiif/3";
 export const PAGE_SIZE = 24;
+export {
+  encodeIiifIdentifier,
+  IIIF_IMAGE_BASE_URL,
+  iiifImageUrlForIdentifier,
+  iiifThumbnailSrcSetForIdentifier,
+};
 
 export type StrapiRelation<T> =
   | T[]
@@ -134,6 +145,7 @@ export type WorkCard = {
   title: string;
   subtitle?: string;
   imageLabel?: string;
+  thumbnailIdentifier?: string;
   thumbnailUrl?: string;
 };
 
@@ -159,22 +171,12 @@ export function relationItems<T>(relation?: StrapiRelation<T>): T[] {
   return relation.data ?? [];
 }
 
-export function encodeIiifIdentifier(identifier: string): string {
-  try {
-    return encodeURIComponent(decodeURIComponent(identifier));
-  } catch {
-    return encodeURIComponent(identifier);
-  }
-}
-
 export function thumbnailUrlFor(image?: Omit<StrapiImage, "attributes">) {
   if (!image?.cantaloupeIdentifier) {
     return undefined;
   }
 
-  return `${IIIF_IMAGE_BASE_URL}/${encodeIiifIdentifier(
-    image.cantaloupeIdentifier,
-  )}/full/256,/0/default.png`;
+  return iiifImageUrlForIdentifier(image.cantaloupeIdentifier, { width: 256 });
 }
 
 export function workTitle(work: Omit<StrapiWork, "attributes">) {
@@ -277,6 +279,7 @@ export function normalizeWork(work: StrapiWork): WorkCard {
     title: workTitle(item),
     subtitle: asset?.title ?? undefined,
     imageLabel: image?.label ?? undefined,
+    thumbnailIdentifier: image?.cantaloupeIdentifier ?? undefined,
     thumbnailUrl: thumbnailUrlFor(image),
   };
 }

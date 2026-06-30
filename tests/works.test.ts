@@ -4,8 +4,10 @@ import {
   getWorkByIabCode,
   getWorks,
   IIIF_IMAGE_BASE_URL,
+  iiifThumbnailSrcSetForIdentifier,
   type StrapiWorksResponse,
 } from "../src/lib/works";
+import { iiifImageUrlForIdentifier } from "../src/lib/iiif";
 
 const originalFetch = globalThis.fetch;
 
@@ -80,9 +82,26 @@ test("getWorks returns landing-page cards with the first IIIF image thumbnail", 
       title: "Landing work",
       subtitle: "Asset title",
       imageLabel: "Opening page",
+      thumbnailIdentifier: "25-001/folio 1 recto.tif",
       thumbnailUrl: `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/full/256,/0/default.png`,
     },
   ]);
+});
+
+test("IIIF thumbnail helpers create canonical src and srcset URLs", () => {
+  const identifier = "25-001/folio 1 recto.tif";
+
+  assert.equal(
+    iiifImageUrlForIdentifier(identifier, { width: 384 }),
+    `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/full/384,/0/default.png`,
+  );
+  assert.equal(
+    iiifThumbnailSrcSetForIdentifier(identifier, { widths: [256, 512] }),
+    [
+      `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/full/256,/0/default.png 256w`,
+      `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/full/512,/0/default.png 512w`,
+    ].join(", "),
+  );
 });
 
 test("getWorks leaves landing-page thumbnail data empty when a work has no image identifier", async () => {

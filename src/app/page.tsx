@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IiifThumbnail } from "@/components/iiif-thumbnail";
 import { getWorks, STRAPI_BASE_URL, worksQuery } from "@/lib/works";
 
 type PageSearchParams = Promise<{
@@ -180,12 +181,11 @@ export default async function Home({
                 className="group overflow-hidden border border-stone-300 bg-white shadow-sm transition-colors hover:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
               >
                 <div className="aspect-[4/3] bg-stone-200">
-                  {work.thumbnailUrl ? (
-                    <img
-                      src={work.thumbnailUrl}
+                  {work.thumbnailIdentifier ? (
+                    <IiifThumbnail
+                      identifier={work.thumbnailIdentifier}
                       alt={work.imageLabel || work.title}
                       className="h-full w-full object-cover"
-                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center px-4 text-center text-sm text-stone-500">
