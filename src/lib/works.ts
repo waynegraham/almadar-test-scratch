@@ -2,7 +2,7 @@ import qs from "qs";
 
 export const STRAPI_BASE_URL = "http://localhost:1337";
 export const IIIF_IMAGE_BASE_URL = "https://iiif-almadar-test.foxfirelab.com/iiif/3";
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = 24;
 
 export type StrapiRelation<T> =
   | T[]
