@@ -14,7 +14,7 @@ export function encodeIiifIdentifier(identifier: string): string {
 type IiifImageUrlOptions = {
   width: number;
   baseUrl?: string;
-  format?: "jpg" | "png" | "webp";
+  format?: "jpg" | "png";
 };
 
 export function iiifImageUrlForIdentifier(
@@ -33,7 +33,7 @@ export function iiifImageUrlForIdentifier(
 type IiifSrcSetOptions = {
   widths?: readonly number[];
   baseUrl?: string;
-  format?: "jpg" | "png" | "webp";
+  format?: "jpg" | "png";
 };
 
 export function iiifThumbnailSrcSetForIdentifier(

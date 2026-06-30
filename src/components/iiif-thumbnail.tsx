@@ -11,7 +11,7 @@ type IiifThumbnailProps = Omit<
 > & {
   identifier: string;
   widths?: readonly number[];
-  format?: "jpg" | "png" | "webp";
+  format?: "jpg" | "png";
 };
 
 export function IiifThumbnail({
