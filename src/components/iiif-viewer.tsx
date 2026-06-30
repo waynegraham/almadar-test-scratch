@@ -1,7 +1,7 @@
 "use client";
 
 import type OpenSeadragonType from "openseadragon";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 type IiifImage = {
   sequence?: number;
@@ -28,7 +28,9 @@ export function IiifViewer({ images }: IiifViewerProps) {
   const reactId = useId();
   const elementId = `iiif-viewer-${reactId.replace(/:/g, "")}`;
   const viewerRef = useRef<OpenSeadragonType.Viewer | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isFullPage, setIsFullPage] = useState(false);
   const viewableImages = useMemo(
     () => images.filter((image) => Boolean(image.infoJsonUrl)),
     [images],
@@ -55,6 +57,7 @@ export function IiifViewer({ images }: IiifViewerProps) {
           "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/6.0.2/images/",
         tileSources: activeTileSource,
         drawer: "canvas",
+        showNavigationControl: false,
         showNavigator: true,
         preserveViewport: false,
         visibilityRatio: 1,
@@ -70,6 +73,55 @@ export function IiifViewer({ images }: IiifViewerProps) {
     };
   }, [activeTileSource, elementId]);
 
+  useEffect(() => {
+    const updateFullPageState = () => {
+      setIsFullPage(document.fullscreenElement === wrapperRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", updateFullPageState);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", updateFullPageState);
+    };
+  }, []);
+
+  const zoomBy = useCallback((factor: number) => {
+    const viewer = viewerRef.current;
+
+    if (!viewer) {
+      return;
+    }
+
+    viewer.viewport.zoomBy(factor);
+    viewer.viewport.applyConstraints();
+  }, []);
+
+  const goHome = useCallback(() => {
+    viewerRef.current?.viewport.goHome();
+  }, []);
+
+  const toggleFullPage = useCallback(() => {
+    const wrapper = wrapperRef.current;
+
+    if (!wrapper) {
+      return;
+    }
+
+    if (document.fullscreenElement === wrapper) {
+      void document.exitFullscreen();
+      return;
+    }
+
+    void wrapper.requestFullscreen();
+  }, []);
+
+  const goToImage = useCallback(
+    (nextIndex: number) => {
+      setActiveIndex(Math.max(0, Math.min(nextIndex, viewableImages.length - 1)));
+    },
+    [viewableImages.length],
+  );
+
   if (viewableImages.length === 0) {
     return (
       <div className="flex min-h-[420px] items-center justify-center border border-stone-300 bg-stone-100 px-6 text-center text-sm text-stone-600">
@@ -80,10 +132,61 @@ export function IiifViewer({ images }: IiifViewerProps) {
 
   return (
     <section className="flex flex-col gap-3">
-      <div
-        id={elementId}
-        className="h-[70vh] min-h-[420px] w-full border border-stone-300 bg-black"
-      />
+      <div ref={wrapperRef} className="relative border border-stone-300 bg-black">
+        <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => zoomBy(1.25)}
+            aria-label="Zoom in"
+            className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => zoomBy(0.8)}
+            aria-label="Zoom out"
+            className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={goHome}
+            className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            Fit
+          </button>
+          <button
+            type="button"
+            onClick={toggleFullPage}
+            className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            {isFullPage ? "Exit" : "Full"}
+          </button>
+          {viewableImages.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={() => goToImage(activeIndex - 1)}
+                disabled={activeIndex === 0}
+                className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => goToImage(activeIndex + 1)}
+                disabled={activeIndex === viewableImages.length - 1}
+                className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
+              >
+                Next
+              </button>
+            </>
+          ) : null}
+        </div>
+        <div id={elementId} className="h-[70vh] min-h-[420px] w-full" />
+      </div>
       <div className="flex flex-wrap gap-2" aria-label="IIIF image list">
         {viewableImages.map((image, index) => (
           <button
