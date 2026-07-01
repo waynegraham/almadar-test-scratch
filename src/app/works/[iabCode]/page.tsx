@@ -1,4 +1,5 @@
 import { IiifViewer } from "@/components/iiif-viewer";
+import { CitationModal, type CitationModalData } from "@/components/citation-modal";
 import {
   getWorkByIabCode,
   relationItems,
@@ -89,6 +90,29 @@ function agentInformation(work: WorkDetail) {
         ar: [role.ar, agent.ar].filter(Boolean).join(": "),
       };
     }),
+  );
+}
+
+function citationCreators(work: WorkDetail) {
+  const credits = relationItems(work.agentCredits)
+    .map(unwrapAttributes)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  return credits.reduce(
+    (creators, credit: Omit<StrapiAgentCredit, "attributes">) => {
+      const agent = entityName(credit.agent);
+
+      if (agent.en) {
+        creators.en.push(agent.en);
+      }
+
+      if (agent.ar) {
+        creators.ar.push(agent.ar);
+      }
+
+      return creators;
+    },
+    { en: [] as string[], ar: [] as string[] },
   );
 }
 
@@ -209,6 +233,32 @@ function metadataRows(work: WorkDetail) {
   ];
 }
 
+function citationData(work: WorkDetail): CitationModalData {
+  const gallery = entityName(work.gallery);
+  const institution = entityName(work.institution);
+
+  return {
+    title: {
+      en: work.titleEn,
+      ar: work.titleAr,
+    },
+    creators: citationCreators(work),
+    date: {
+      en: work.dateDisplayGregorianEn ?? work.earliestDate,
+      ar: work.dateDisplayGregorianAr ?? work.earliestDate,
+    },
+    institution: {
+      en: institution.en,
+      ar: institution.ar,
+    },
+    gallery: {
+      en: gallery.en,
+      ar: gallery.ar,
+    },
+    iabCode: work.iabCode,
+  };
+}
+
 export default async function WorkPage({ params }: { params: WorkPageParams }) {
   const { iabCode } = await params;
   const decodedIabCode = decodeURIComponent(iabCode);
@@ -235,9 +285,12 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
                 {workTitle(work)}
               </h1>
             </div>
-            <p className="text-sm text-stone-600">
-              {work.images.length} IIIF image{work.images.length === 1 ? "" : "s"}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-stone-600">
+                {work.images.length} IIIF image{work.images.length === 1 ? "" : "s"}
+              </p>
+              <CitationModal work={citationData(work)} />
+            </div>
           </div>
         </header>
 
