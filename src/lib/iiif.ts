@@ -1,5 +1,6 @@
-export const IIIF_IMAGE_BASE_URL =
-  "https://iiif-almadar-test.foxfirelab.com/iiif/3";
+import { IIIF_IMAGE_BASE_URL } from "./config";
+
+export { IIIF_IMAGE_BASE_URL };
 
 export const IIIF_THUMBNAIL_WIDTHS = [256, 384, 512, 768] as const;
 
@@ -28,6 +29,17 @@ export function iiifImageUrlForIdentifier(
   return `${baseUrl}/${encodeIiifIdentifier(
     identifier,
   )}/full/${width},/0/default.${format}`;
+}
+
+type IiifInfoJsonUrlOptions = {
+  baseUrl?: string;
+};
+
+export function iiifInfoJsonUrlForIdentifier(
+  identifier: string,
+  { baseUrl = IIIF_IMAGE_BASE_URL }: IiifInfoJsonUrlOptions = {},
+) {
+  return `${baseUrl}/${encodeIiifIdentifier(identifier)}/info.json`;
 }
 
 type IiifSrcSetOptions = {
