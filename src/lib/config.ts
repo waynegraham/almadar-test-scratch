@@ -34,6 +34,8 @@ export const STRAPI_BASE_URL = normalizeStrapiBaseUrl(
   process.env.STRAPI_PORT,
 );
 
+export const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN?.trim();
+
 export const IIIF_SERVER_URL = normalizeBaseUrl(
   process.env.IIIF_SERVER ?? "https://iiif-almadar-test.foxfirelab.com",
 );

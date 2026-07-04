@@ -1,5 +1,5 @@
 import qs from "qs";
-import { STRAPI_BASE_URL } from "./config";
+import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
 import {
   encodeIiifIdentifier,
   IIIF_IMAGE_BASE_URL,
@@ -17,6 +17,17 @@ export {
   iiifImageUrlForIdentifier,
   iiifThumbnailSrcSetForIdentifier,
 };
+
+function strapiFetch(url: string) {
+  return fetch(url, {
+    cache: "no-store",
+    headers: STRAPI_API_TOKEN
+      ? {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        }
+      : undefined,
+  });
+}
 
 export type StrapiRelation<T> =
   | T[]
@@ -315,9 +326,7 @@ export function normalizeWorkDetail(work: StrapiWork): WorkDetail {
 export async function getWorks(page: number) {
   const query = worksQuery(page);
   const url = `${STRAPI_BASE_URL}/api/works?${query}`;
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
+  const response = await strapiFetch(url);
 
   if (!response.ok) {
     throw new Error(`Strapi returned ${response.status} ${response.statusText}`);
@@ -335,9 +344,7 @@ export async function getWorks(page: number) {
 export async function getWorkByIabCode(iabCode: string) {
   const query = workDetailQuery(iabCode);
   const url = `${STRAPI_BASE_URL}/api/works?${query}`;
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
+  const response = await strapiFetch(url);
 
   if (!response.ok) {
     throw new Error(`Strapi returned ${response.status} ${response.statusText}`);
