@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import qs from "qs";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
+import {
+  STRAPI_API_TOKEN,
+  STRAPI_BASE_URL,
+  STRAPI_CLOUDFLARE_BYPASS_SECRET,
+} from "./config";
 import {
   encodeIiifIdentifier,
   IIIF_IMAGE_BASE_URL,
@@ -28,6 +32,11 @@ function strapiFetch(url: string) {
       ...(STRAPI_API_TOKEN
         ? {
             Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          }
+        : {}),
+      ...(STRAPI_CLOUDFLARE_BYPASS_SECRET
+        ? {
+            "X-Almadar-App-Secret": STRAPI_CLOUDFLARE_BYPASS_SECRET,
           }
         : {}),
     },
