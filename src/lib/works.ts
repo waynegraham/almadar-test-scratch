@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import qs from "qs";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
 import {
@@ -34,6 +35,10 @@ function strapiErrorMessage(response: Response) {
     ? [
         "yes",
         `length: ${STRAPI_API_TOKEN.length}`,
+        `fingerprint: ${createHash("sha256")
+          .update(STRAPI_API_TOKEN)
+          .digest("hex")
+          .slice(0, 12)}`,
         `starts with Bearer: ${/^bearer\s+/i.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
         `quoted: ${/^["']|["']$/.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
       ].join(", ")
