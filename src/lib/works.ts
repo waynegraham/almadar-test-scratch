@@ -30,9 +30,18 @@ function strapiFetch(url: string) {
 }
 
 function strapiErrorMessage(response: Response) {
+  const tokenDiagnostics = STRAPI_API_TOKEN
+    ? [
+        "yes",
+        `length: ${STRAPI_API_TOKEN.length}`,
+        `starts with Bearer: ${/^bearer\s+/i.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
+        `quoted: ${/^["']|["']$/.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
+      ].join(", ")
+    : "no";
+
   return `Strapi returned ${response.status} ${
     response.statusText
-  } (STRAPI_API_TOKEN configured: ${STRAPI_API_TOKEN ? "yes" : "no"})`;
+  } (STRAPI_API_TOKEN configured: ${tokenDiagnostics})`;
 }
 
 export type StrapiRelation<T> =
