@@ -1,16 +1,19 @@
 import qs from "qs";
+import { STRAPI_BASE_URL } from "./config";
 import {
   encodeIiifIdentifier,
   IIIF_IMAGE_BASE_URL,
+  iiifInfoJsonUrlForIdentifier,
   iiifImageUrlForIdentifier,
   iiifThumbnailSrcSetForIdentifier,
 } from "./iiif";
 
-export const STRAPI_BASE_URL = "http://localhost:1337";
 export const PAGE_SIZE = 24;
 export {
   encodeIiifIdentifier,
   IIIF_IMAGE_BASE_URL,
+  STRAPI_BASE_URL,
+  iiifInfoJsonUrlForIdentifier,
   iiifImageUrlForIdentifier,
   iiifThumbnailSrcSetForIdentifier,
 };
@@ -179,6 +182,14 @@ export function thumbnailUrlFor(image?: Omit<StrapiImage, "attributes">) {
   return iiifImageUrlForIdentifier(image.cantaloupeIdentifier, { width: 256 });
 }
 
+export function infoJsonUrlFor(image: Omit<StrapiImage, "attributes">) {
+  if (!image.cantaloupeIdentifier) {
+    return image.infoJsonUrl ?? undefined;
+  }
+
+  return iiifInfoJsonUrlForIdentifier(image.cantaloupeIdentifier);
+}
+
 export function workTitle(work: Omit<StrapiWork, "attributes">) {
   return (
     work.displayTitle?.trim() ||
@@ -289,6 +300,10 @@ export function normalizeWorkDetail(work: StrapiWork): WorkDetail {
   const images = relationItems(item.iiif_assets)
     .map(unwrapAttributes)
     .flatMap((asset) => relationItems(asset.images).map(unwrapAttributes))
+    .map((image) => ({
+      ...image,
+      infoJsonUrl: infoJsonUrlFor(image),
+    }))
     .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
 
   return {

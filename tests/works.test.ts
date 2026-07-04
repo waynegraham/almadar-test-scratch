@@ -4,6 +4,7 @@ import {
   getWorkByIabCode,
   getWorks,
   IIIF_IMAGE_BASE_URL,
+  iiifInfoJsonUrlForIdentifier,
   iiifThumbnailSrcSetForIdentifier,
   type StrapiWorksResponse,
 } from "../src/lib/works";
@@ -102,6 +103,10 @@ test("IIIF thumbnail helpers create canonical src and srcset URLs", () => {
       `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/full/512,/0/default.png 512w`,
     ].join(", "),
   );
+  assert.equal(
+    iiifInfoJsonUrlForIdentifier(identifier),
+    `${IIIF_IMAGE_BASE_URL}/25-001%2Ffolio%201%20recto.tif/info.json`,
+  );
 });
 
 test("getWorks leaves landing-page thumbnail data empty when a work has no image identifier", async () => {
@@ -185,19 +190,19 @@ test("getWorkByIabCode returns every work-page IIIF image sorted by sequence", a
       {
         sequence: 1,
         label: "First image",
-        infoJsonUrl: "https://example.test/first/info.json",
+        infoJsonUrl: `${IIIF_IMAGE_BASE_URL}/25-003%2Ffirst.tif/info.json`,
         cantaloupeIdentifier: "25-003/first.tif",
       },
       {
         sequence: 2,
         label: "Second image",
-        infoJsonUrl: "https://example.test/second/info.json",
+        infoJsonUrl: `${IIIF_IMAGE_BASE_URL}/25-003%2Fsecond.tif/info.json`,
         cantaloupeIdentifier: "25-003/second.tif",
       },
       {
         sequence: 3,
         label: "Third image",
-        infoJsonUrl: "https://example.test/third/info.json",
+        infoJsonUrl: `${IIIF_IMAGE_BASE_URL}/25-003%2Fthird.tif/info.json`,
         cantaloupeIdentifier: "25-003/third.tif",
       },
     ],
