@@ -8,6 +8,7 @@ import {
   iiifThumbnailSrcSetForIdentifier,
   type StrapiWorksResponse,
 } from "../src/lib/works";
+import { normalizeBaseUrl, normalizeStrapiBaseUrl } from "../src/lib/config";
 import { iiifImageUrlForIdentifier } from "../src/lib/iiif";
 
 const originalFetch = globalThis.fetch;
@@ -30,6 +31,23 @@ function mockFetch(payload: StrapiWorksResponse) {
 
   return calls;
 }
+
+test("normalizeBaseUrl accepts host-only values and trims trailing slashes", () => {
+  assert.equal(normalizeBaseUrl("localhost:1337/"), "http://localhost:1337");
+  assert.equal(normalizeBaseUrl("  0.0.0.0:1337//  "), "http://0.0.0.0:1337");
+  assert.equal(
+    normalizeBaseUrl("https://strapi.example.test/"),
+    "https://strapi.example.test",
+  );
+});
+
+test("normalizeStrapiBaseUrl converts bind hosts into fetchable local URLs", () => {
+  assert.equal(normalizeStrapiBaseUrl("0.0.0.0", "1337"), "http://localhost:1337");
+  assert.equal(
+    normalizeStrapiBaseUrl("http://0.0.0.0:1337/"),
+    "http://localhost:1337",
+  );
+});
 
 test("getWorks returns landing-page cards with the first IIIF image thumbnail", async () => {
   const calls = mockFetch({
