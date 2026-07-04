@@ -212,7 +212,7 @@ function metadataRows(work: WorkDetail) {
 export default async function WorkPage({ params }: { params: WorkPageParams }) {
   const { iabCode } = await params;
   const decodedIabCode = decodeURIComponent(iabCode);
-  const { work } = await getWorkByIabCode(decodedIabCode);
+  const { url, work } = await getWorkByIabCode(decodedIabCode);
 
   if (!work) {
     notFound();
@@ -248,6 +248,18 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
             <MetadataRow key={row.label} {...row} />
           ))}
         </section>
+
+        <details className="border border-stone-300 bg-white p-4 text-sm">
+          <summary className="cursor-pointer font-medium">Generated Strapi URL</summary>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block break-all font-mono text-xs text-stone-600 underline-offset-4 hover:text-stone-950 hover:underline"
+          >
+            {url}
+          </a>
+        </details>
       </section>
     </main>
   );
