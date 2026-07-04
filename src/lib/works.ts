@@ -29,6 +29,12 @@ function strapiFetch(url: string) {
   });
 }
 
+function strapiErrorMessage(response: Response) {
+  return `Strapi returned ${response.status} ${
+    response.statusText
+  } (STRAPI_API_TOKEN configured: ${STRAPI_API_TOKEN ? "yes" : "no"})`;
+}
+
 export type StrapiRelation<T> =
   | T[]
   | {
@@ -329,7 +335,7 @@ export async function getWorks(page: number) {
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(`Strapi returned ${response.status} ${response.statusText}`);
+    throw new Error(strapiErrorMessage(response));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
@@ -347,7 +353,7 @@ export async function getWorkByIabCode(iabCode: string) {
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(`Strapi returned ${response.status} ${response.statusText}`);
+    throw new Error(strapiErrorMessage(response));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
