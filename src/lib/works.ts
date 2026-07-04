@@ -22,15 +22,19 @@ export {
 function strapiFetch(url: string) {
   return fetch(url, {
     cache: "no-store",
-    headers: STRAPI_API_TOKEN
-      ? {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        }
-      : undefined,
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "almadar-test-scratch/1.0",
+      ...(STRAPI_API_TOKEN
+        ? {
+            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          }
+        : {}),
+    },
   });
 }
 
-function strapiErrorMessage(response: Response) {
+async function strapiErrorMessage(response: Response) {
   const tokenDiagnostics = STRAPI_API_TOKEN
     ? [
         "yes",
@@ -43,10 +47,26 @@ function strapiErrorMessage(response: Response) {
         `quoted: ${/^["']|["']$/.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
       ].join(", ")
     : "no";
+  const responseText = await response.text().catch(() => "");
+  const bodySnippet = responseText
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+  const server = response.headers.get("server");
+  const poweredBy = response.headers.get("x-powered-by");
+  const responseDiagnostics = [
+    server ? `server: ${server}` : undefined,
+    poweredBy ? `x-powered-by: ${poweredBy}` : undefined,
+    bodySnippet ? `body: ${bodySnippet}` : undefined,
+  ]
+    .filter(Boolean)
+    .join("; ");
 
   return `Strapi returned ${response.status} ${
     response.statusText
-  } (STRAPI_API_TOKEN configured: ${tokenDiagnostics})`;
+  } (STRAPI_API_TOKEN configured: ${tokenDiagnostics}${
+    responseDiagnostics ? `; ${responseDiagnostics}` : ""
+  })`;
 }
 
 export type StrapiRelation<T> =
@@ -349,7 +369,7 @@ export async function getWorks(page: number) {
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(strapiErrorMessage(response));
+    throw new Error(await strapiErrorMessage(response));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
@@ -367,7 +387,7 @@ export async function getWorkByIabCode(iabCode: string) {
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(strapiErrorMessage(response));
+    throw new Error(await strapiErrorMessage(response));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
