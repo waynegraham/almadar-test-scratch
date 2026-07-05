@@ -1,5 +1,6 @@
 "use client";
 
+import { IiifThumbnail } from "@/components/iiif-thumbnail";
 import type OpenSeadragonType from "openseadragon";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
@@ -187,22 +188,40 @@ export function IiifViewer({ images }: IiifViewerProps) {
         </div>
         <div id={elementId} className="h-[70vh] min-h-[420px] w-full" />
       </div>
-      <div className="flex flex-wrap gap-2" aria-label="IIIF image list">
-        {viewableImages.map((image, index) => (
-          <button
-            key={`${image.infoJsonUrl ?? image.cantaloupeIdentifier ?? index}`}
-            type="button"
-            onClick={() => setActiveIndex(index)}
-            className={
-              index === activeIndex
-                ? "border border-stone-900 bg-stone-900 px-2 py-1 text-left text-xs text-white"
-                : "border border-stone-300 bg-white px-2 py-1 text-left text-xs text-stone-600 hover:border-stone-900"
-            }
-          >
-            {image.sequence ? `${image.sequence}. ` : ""}
-            {imageLabel(image, index)}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-3" aria-label="IIIF image list">
+        {viewableImages.map((image, index) => {
+          const label = imageLabel(image, index);
+
+          return (
+            <button
+              key={`${image.infoJsonUrl ?? image.cantaloupeIdentifier ?? index}`}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              aria-label={label}
+              aria-current={index === activeIndex ? "true" : undefined}
+              title={label}
+              className={
+                index === activeIndex
+                  ? "w-[160px] border border-stone-900 bg-stone-900 p-1 shadow-sm"
+                  : "w-[160px] border border-stone-300 bg-white p-1 shadow-sm transition-colors hover:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900"
+              }
+            >
+              {image.cantaloupeIdentifier ? (
+                <IiifThumbnail
+                  identifier={image.cantaloupeIdentifier}
+                  widths={[160]}
+                  format="jpg"
+                  alt={label}
+                  className="aspect-[4/3] w-full bg-stone-100 object-contain"
+                />
+              ) : (
+                <span className="flex aspect-[4/3] w-full items-center justify-center bg-stone-100 px-2 text-center text-xs text-stone-500">
+                  {label}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
