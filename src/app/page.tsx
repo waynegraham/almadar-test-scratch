@@ -148,12 +148,20 @@ export default async function Home({
             </h1>
           </div>
           <div className="flex flex-col gap-3 sm:items-end">
-            <Link
-              href="/iiif-images"
-              className="w-fit border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
-            >
-              Review IIIF thumbnails
-            </Link>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Link
+                href="/html-converter"
+                className="w-fit border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+              >
+                Convert structured content
+              </Link>
+              <Link
+                href="/iiif-images"
+                className="w-fit border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+              >
+                Review IIIF thumbnails
+              </Link>
+            </div>
             {data?.pagination ? (
               <p className="text-sm text-stone-600">
                 Page {data.pagination.page ?? 1} of{" "}
