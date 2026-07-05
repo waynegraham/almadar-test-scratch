@@ -111,7 +111,17 @@ export default function HtmlConverterPage() {
       return;
     }
 
-    await navigator.clipboard.writeText(result.html);
+    if ("ClipboardItem" in window && navigator.clipboard.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([result.html], { type: "text/html" }),
+          "text/plain": new Blob([result.html], { type: "text/plain" }),
+        }),
+      ]);
+    } else {
+      await navigator.clipboard.writeText(result.html);
+    }
+
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
@@ -140,7 +150,7 @@ export default function HtmlConverterPage() {
             disabled={!result.html || Boolean(result.error)}
             className="w-fit border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 disabled:hover:border-stone-200 disabled:hover:bg-stone-100"
           >
-            {copied ? "Copied" : "Copy HTML"}
+            {copied ? "Copied" : "Copy for CKEditor"}
           </button>
         </header>
 
@@ -160,7 +170,7 @@ export default function HtmlConverterPage() {
 
           <section className="flex min-h-[34rem] flex-col border border-stone-300 bg-white">
             <div className="flex items-center justify-between gap-3 border-b border-stone-300 px-4 py-3">
-              <h2 className="text-base font-semibold">Plain HTML</h2>
+              <h2 className="text-base font-semibold">Rendered HTML</h2>
               {result.error ? (
                 <span className="text-sm font-medium text-amber-800">
                   Needs valid JSON
@@ -172,13 +182,25 @@ export default function HtmlConverterPage() {
                 {result.error}
               </div>
             ) : null}
-            <textarea
-              readOnly
-              value={result.html}
-              spellCheck={false}
-              className="min-h-[28rem] flex-1 resize-y bg-stone-50 p-4 font-mono text-sm leading-6 text-stone-900 outline-none focus:ring-2 focus:ring-inset focus:ring-stone-900"
-              aria-label="Generated plain HTML"
+            <div
+              contentEditable={!result.error}
+              suppressContentEditableWarning
+              className="min-h-[24rem] flex-1 bg-stone-50 p-5 text-base leading-7 text-stone-900 outline-none focus:ring-2 focus:ring-inset focus:ring-stone-900 [&_p]:mb-4 [&_p:last-child]:mb-0"
+              aria-label="Rendered HTML output"
+              dangerouslySetInnerHTML={{ __html: result.html }}
             />
+            <details className="border-t border-stone-300 bg-white p-4 text-sm">
+              <summary className="cursor-pointer font-medium">
+                View HTML source
+              </summary>
+              <textarea
+                readOnly
+                value={result.html}
+                spellCheck={false}
+                className="mt-3 min-h-40 w-full resize-y border border-stone-300 bg-stone-50 p-3 font-mono text-xs leading-5 text-stone-900 outline-none focus:ring-2 focus:ring-inset focus:ring-stone-900"
+                aria-label="Generated HTML source"
+              />
+            </details>
           </section>
         </div>
       </section>
