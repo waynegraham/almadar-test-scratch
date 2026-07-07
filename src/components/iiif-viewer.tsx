@@ -16,6 +16,12 @@ type IiifViewerProps = {
   images: IiifImage[];
 };
 
+type IiifTileSource = OpenSeadragonType.TileSourceOptions & {
+  tileFormat: "png";
+  preferredFormats?: string[];
+  [key: string]: unknown;
+};
+
 function imageLabel(image: IiifImage, index: number) {
   return (
     image.label?.trim() ||
@@ -44,30 +50,66 @@ export function IiifViewer({ images }: IiifViewerProps) {
       return;
     }
 
+    const abortController = new AbortController();
     let cancelled = false;
     const initTimer = window.setTimeout(async () => {
-      const { default: OpenSeadragon } = await import("openseadragon");
+      try {
+        const [{ default: OpenSeadragon }, infoJson] = await Promise.all([
+          import("openseadragon"),
+          fetch(activeTileSource, { signal: abortController.signal }).then(
+            (response) => {
+              if (!response.ok) {
+                throw new Error(
+                  `Failed to load IIIF info.json: ${response.status}`,
+                );
+              }
 
-      if (cancelled) {
-        return;
+              return response.json() as Promise<Record<string, unknown>>;
+            },
+          ),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const preferredFormats = Array.isArray(infoJson.preferredFormats)
+          ? [
+              "png",
+              ...infoJson.preferredFormats.filter(
+                (format): format is string =>
+                  typeof format === "string" && format !== "png",
+              ),
+            ]
+          : undefined;
+        const tileSource: IiifTileSource = {
+          ...infoJson,
+          ...(preferredFormats ? { preferredFormats } : {}),
+          tileFormat: "png",
+        };
+
+        viewerRef.current = OpenSeadragon({
+          id: elementId,
+          prefixUrl:
+            "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/6.0.2/images/",
+          tileSources: tileSource,
+          drawer: "canvas",
+          showNavigationControl: false,
+          showNavigator: true,
+          preserveViewport: false,
+          visibilityRatio: 1,
+          crossOriginPolicy: "Anonymous",
+        });
+      } catch (error) {
+        if (!cancelled && !abortController.signal.aborted) {
+          console.error(error);
+        }
       }
-
-      viewerRef.current = OpenSeadragon({
-        id: elementId,
-        prefixUrl:
-          "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/6.0.2/images/",
-        tileSources: activeTileSource,
-        drawer: "canvas",
-        showNavigationControl: false,
-        showNavigator: true,
-        preserveViewport: false,
-        visibilityRatio: 1,
-        crossOriginPolicy: "Anonymous",
-      });
     }, 0);
 
     return () => {
       cancelled = true;
+      abortController.abort();
       window.clearTimeout(initTimer);
       viewerRef.current?.destroy();
       viewerRef.current = null;
@@ -210,7 +252,7 @@ export function IiifViewer({ images }: IiifViewerProps) {
                 <IiifThumbnail
                   identifier={image.cantaloupeIdentifier}
                   widths={[160]}
-                  format="jpg"
+                  format="png"
                   alt={label}
                   className="aspect-[4/3] w-full bg-stone-100 object-contain"
                 />
