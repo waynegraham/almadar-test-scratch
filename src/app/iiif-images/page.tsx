@@ -179,12 +179,12 @@ export default async function IiifImagesPage({
                       <IiifThumbnail
                         identifier={image.cantaloupeIdentifier}
                         widths={[160, 320]}
-                        format="jpg"
+                        format="png"
                         sizes="160px"
                         alt={label}
                         className="h-full w-full object-contain"
                       />
-                    ) : (
+                    ) : ( d
                       <div className="flex h-full items-center justify-center px-3 text-center text-xs text-stone-500">
                         No thumbnail
                       </div>

@@ -39,7 +39,7 @@ export const STRAPI_CLOUDFLARE_BYPASS_SECRET =
   process.env.STRAPI_CLOUDFLARE_BYPASS_SECRET?.trim();
 
 export const IIIF_SERVER_URL = normalizeBaseUrl(
-  process.env.IIIF_SERVER ?? "https://iiif-almadar-test.foxfirelab.com",
+  process.env.IIIF_SERVER ?? "https://iiif-staging-almadar.biennale.org.sa/",
 );
 
 export const IIIF_IMAGE_BASE_URL = IIIF_SERVER_URL.endsWith("/iiif/3")
