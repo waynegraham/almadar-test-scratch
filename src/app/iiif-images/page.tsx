@@ -184,7 +184,7 @@ export default async function IiifImagesPage({
                         alt={label}
                         className="h-full w-full object-contain"
                       />
-                    ) : ( d
+                    ) : (
                       <div className="flex h-full items-center justify-center px-3 text-center text-xs text-stone-500">
                         No thumbnail
                       </div>
