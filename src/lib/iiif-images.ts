@@ -2,7 +2,7 @@ import qs from "qs";
 
 export const IIIF_IMAGES_PAGE_SIZE = 160;
 export const IIIF_IMAGES_ENDPOINT =
-  "https://cms-staging-almadar.biennale.org.sa//api/iiif-images";
+  "https://cms-staging-almadar.biennale.org.sa/api/iiif-images";
 
 type StrapiIiifAsset = {
   id?: number | string;
