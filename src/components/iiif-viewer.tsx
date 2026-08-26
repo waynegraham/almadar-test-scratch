@@ -91,14 +91,16 @@ export function IiifViewer({ images }: IiifViewerProps) {
         viewerRef.current = OpenSeadragon({
           id: elementId,
           prefixUrl:
-            "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/6.0.2/images/",
+            "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/6.1.0/images/",
           tileSources: tileSource,
-          drawer: "canvas",
+          drawer: "auto",
           showNavigationControl: false,
           showNavigator: true,
           preserveViewport: false,
+          immediateRender: true,
           visibilityRatio: 1,
           crossOriginPolicy: "Anonymous",
+          subPixelRoundingForTransparency: OpenSeadragon.SUBPIXEL_ROUNDING_OCCURRENCES.ALWAYS,
         });
       } catch (error) {
         if (!cancelled && !abortController.signal.aborted) {

@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "next": "16.2.9",
-    "openseadragon": "^6.0.2",
+    "openseadragon": "^6.1.0",
     "qs": "^6.15.3",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -21,7 +21,7 @@
     "@types/node": "^20.19.43",
     "@types/qs": "^6.15.1",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react-dom": "^19.2.5",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4.3.3",
