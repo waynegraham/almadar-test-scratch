@@ -100,7 +100,9 @@ export function IiifViewer({ images }: IiifViewerProps) {
           immediateRender: true,
           visibilityRatio: 1,
           crossOriginPolicy: "Anonymous",
-          subPixelRoundingForTransparency: OpenSeadragon.SUBPIXEL_ROUNDING_OCCURRENCES.ALWAYS,
+          subPixelRoundingForTransparency: {
+            "*": OpenSeadragon.SUBPIXEL_ROUNDING_OCCURRENCES.ALWAYS,
+          },
         });
       } catch (error) {
         if (!cancelled && !abortController.signal.aborted) {
