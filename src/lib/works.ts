@@ -259,7 +259,10 @@ export function workTitle(work: Omit<StrapiWork, "attributes">) {
   );
 }
 
-export function worksQuery(page: number) {
+export function worksQuery(page: number, codeSearch = "", edition = "") {
+  const code = codeSearch.trim();
+  const prefix = edition.trim();
+
   return qs.stringify(
     {
       status: "published",
@@ -268,11 +271,14 @@ export function worksQuery(page: number) {
         pageSize: PAGE_SIZE,
       },
       sort: ["iabCode:asc"],
-      filters: {
-        iabCode: {
-          $startsWith: "25-",
-        },
-      },
+      filters: code || prefix
+        ? {
+            iabCode: {
+              ...(code ? { $containsi: code } : {}),
+              ...(prefix ? { $startsWith: prefix } : {}),
+            },
+          }
+        : undefined,
       fields: ["iabCode", "displayTitle", "titleEn", "titleAr"],
       populate: {
         iiif_assets: {
@@ -372,8 +378,8 @@ export function normalizeWorkDetail(work: StrapiWork): WorkDetail {
   };
 }
 
-export async function getWorks(page: number) {
-  const query = worksQuery(page);
+export async function getWorks(page: number, codeSearch = "", edition = "") {
+  const query = worksQuery(page, codeSearch, edition);
   const url = `${STRAPI_BASE_URL}/api/works?${query}`;
   const response = await strapiFetch(url);
 

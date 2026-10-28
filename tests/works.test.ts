@@ -6,12 +6,69 @@ import {
   IIIF_IMAGE_BASE_URL,
   iiifInfoJsonUrlForIdentifier,
   iiifThumbnailSrcSetForIdentifier,
+  worksQuery,
   type StrapiWorksResponse,
 } from "../src/lib/works";
 import { normalizeBaseUrl, normalizeStrapiBaseUrl } from "../src/lib/config";
 import { iiifImageUrlForIdentifier } from "../src/lib/iiif";
 
 const originalFetch = globalThis.fetch;
+
+test("worksQuery combines edition prefixes with partial code search", () => {
+  for (const edition of ["23-", "25-"]) {
+    const query = new URLSearchParams(worksQuery(2, "  001  ", edition));
+
+    assert.equal(query.get("filters[iabCode][$startsWith]"), edition);
+    assert.equal(query.get("filters[iabCode][$containsi]"), "001");
+    assert.equal(query.get("pagination[page]"), "2");
+    assert.equal(query.get("status"), "published");
+  }
+});
+
+test("getWorks passes the edition filter without requiring a code search", async () => {
+  const calls = mockFetch({ data: [] });
+
+  await getWorks(1, "", "23-");
+
+  const query = new URL(calls[0]!.url).searchParams;
+  assert.equal(query.get("filters[iabCode][$startsWith]"), "23-");
+  assert.equal(query.get("filters[iabCode][$containsi]"), null);
+});
+
+test("getWorks lists all published codes without a prefix restriction", async () => {
+  const calls = mockFetch({ data: [] });
+
+  await getWorks(2);
+
+  const query = new URL(calls[0]!.url).searchParams;
+  assert.equal(query.get("status"), "published");
+  assert.equal(query.get("pagination[page]"), "2");
+  assert.equal(query.get("filters[iabCode][$startsWith]"), null);
+});
+
+test("getWorks searches full or partial codes across the collection", async () => {
+  for (const code of ["26-001", "001", "Ab&C+#"]) {
+    const calls = mockFetch({ data: [] });
+
+    await getWorks(3, `  ${code}  `);
+
+    const query = new URL(calls[0]!.url).searchParams;
+    assert.equal(query.get("filters[iabCode][$containsi]"), code);
+    assert.equal(query.get("filters[iabCode][$startsWith]"), null);
+    assert.equal(query.get("pagination[page]"), "3");
+    assert.equal(query.get("status"), "published");
+  }
+});
+
+test("getWorks treats a whitespace-only search as browsing all works", async () => {
+  const calls = mockFetch({ data: [] });
+
+  await getWorks(1, "   ");
+
+  const query = new URL(calls[0]!.url).searchParams;
+  assert.equal(query.get("filters[iabCode][$containsi]"), null);
+  assert.equal(query.get("filters[iabCode][$startsWith]"), null);
+});
 
 afterEach(() => {
   globalThis.fetch = originalFetch;

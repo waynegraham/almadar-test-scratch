@@ -4,6 +4,8 @@ import { getWorks, STRAPI_BASE_URL, worksQuery } from "@/lib/works";
 
 type PageSearchParams = Promise<{
   page?: string | string[];
+  q?: string | string[];
+  edition?: string | string[];
 }>;
 
 function currentPageFrom(searchParams: Awaited<PageSearchParams>) {
@@ -19,8 +21,13 @@ function currentPageFrom(searchParams: Awaited<PageSearchParams>) {
   return page;
 }
 
-function pageHref(page: number) {
-  return page === 1 ? "/" : `/?page=${page}`;
+function pageHref(page: number, codeSearch: string, edition: string) {
+  const params = new URLSearchParams();
+  if (codeSearch) params.set("q", codeSearch);
+  if (edition) params.set("edition", edition);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
 }
 
 function paginationRange(currentPage: number, pageCount: number) {
@@ -49,10 +56,14 @@ function Pagination({
   page,
   pageCount,
   total,
+  codeSearch,
+  edition,
 }: {
   page: number;
   pageCount: number;
   total?: number;
+  codeSearch: string;
+  edition: string;
 }) {
   if (pageCount <= 1) {
     return null;
@@ -77,7 +88,7 @@ function Pagination({
       </p>
       <div className="flex flex-wrap items-center gap-2">
         {previousPage >= 1 ? (
-          <Link className={controlClass} href={pageHref(previousPage)}>
+          <Link className={controlClass} href={pageHref(previousPage, codeSearch, edition)}>
             Previous
           </Link>
         ) : (
@@ -101,14 +112,14 @@ function Pagination({
               {item}
             </span>
           ) : (
-            <Link key={item} className={controlClass} href={pageHref(item)}>
+            <Link key={item} className={controlClass} href={pageHref(item, codeSearch, edition)}>
               {item}
             </Link>
           ),
         )}
 
         {nextPage <= pageCount ? (
-          <Link className={controlClass} href={pageHref(nextPage)}>
+          <Link className={controlClass} href={pageHref(nextPage, codeSearch, edition)}>
             Next
           </Link>
         ) : (
@@ -126,11 +137,15 @@ export default async function Home({
 }) {
   let data: Awaited<ReturnType<typeof getWorks>> | undefined;
   let error: string | undefined;
-  const requestedPage = currentPageFrom(await searchParams);
-  const fallbackQuery = worksQuery(requestedPage);
+  const params = await searchParams;
+  const requestedPage = currentPageFrom(params);
+  const codeSearch = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
+  const rawEdition = Array.isArray(params.edition) ? params.edition[0] : params.edition;
+  const edition = rawEdition === "23-" || rawEdition === "25-" ? rawEdition : "";
+  const fallbackQuery = worksQuery(requestedPage, codeSearch, edition);
 
   try {
-    data = await getWorks(requestedPage);
+    data = await getWorks(requestedPage, codeSearch, edition);
   } catch (caught) {
     error = caught instanceof Error ? caught.message : "Unable to load works.";
   }
@@ -144,7 +159,7 @@ export default async function Home({
               Almadar test viewer
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-stone-950 sm:text-4xl">
-              Published works beginning with 25-
+              Published works
             </h1>
           </div>
           <div className="flex flex-col gap-3 sm:items-end">
@@ -173,6 +188,50 @@ export default async function Home({
           </div>
         </header>
 
+        <form action="/" method="get" role="search" className="flex flex-col gap-3">
+          <label htmlFor="code-search" className="text-sm font-medium">
+            Search by IAB code
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="edition-filter" className="text-sm font-medium">
+                Edition
+              </label>
+              <select
+                key={edition}
+                id="edition-filter"
+                name="edition"
+                defaultValue={edition}
+                className="border border-stone-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+              >
+                <option value="">All editions</option>
+                <option value="23-">23-</option>
+                <option value="25-">25-</option>
+              </select>
+            </div>
+            <input
+              key={codeSearch}
+              id="code-search"
+              name="q"
+              type="search"
+              defaultValue={codeSearch}
+              placeholder="Enter a full or partial code"
+              className="min-w-0 flex-1 border border-stone-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+            />
+            <button
+              type="submit"
+              className="border border-stone-900 bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+            >
+              Search
+            </button>
+            {codeSearch || edition ? (
+              <Link href="/" className="text-sm underline underline-offset-4">
+                Clear filters
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
         {error ? (
           <section className="border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950">
             <h2 className="font-semibold">Could not load Strapi data</h2>
@@ -185,7 +244,11 @@ export default async function Home({
 
         {data && data.works.length === 0 ? (
           <section className="border border-stone-300 bg-white p-8 text-center text-stone-600">
-            No works matched this query.
+            {codeSearch
+              ? `No works matched code “${codeSearch}”.`
+              : edition
+                ? `No published works found for edition ${edition}.`
+                : "No published works found."}
           </section>
         ) : null}
 
@@ -235,6 +298,8 @@ export default async function Home({
             page={data.pagination.page ?? requestedPage}
             pageCount={data.pagination.pageCount ?? 1}
             total={data.pagination.total}
+            codeSearch={codeSearch}
+            edition={edition}
           />
         ) : null}
 
