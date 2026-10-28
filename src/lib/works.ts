@@ -94,6 +94,9 @@ export type StrapiImage = {
   documentId?: string;
   sequence?: number;
   label?: string | null;
+  sourcePath?: string | null;
+  rightsNote?: string | null;
+  displayTitle?: string | null;
   folioLabel?: string | null;
   cantaloupeIdentifier?: string | null;
   infoJsonUrl?: string | null;

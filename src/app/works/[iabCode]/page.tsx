@@ -3,6 +3,7 @@ import { CitationModal, type CitationModalData } from "@/components/citation-mod
 import {
   getWorkByIabCode,
   relationItems,
+  STRAPI_BASE_URL,
   type LocalizedValue,
   type StrapiAgentCredit,
   type StrapiNamedEntity,
@@ -294,7 +295,7 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
           </div>
         </header>
 
-        <IiifViewer images={work.images} />
+        <IiifViewer images={work.images} strapiBaseUrl={STRAPI_BASE_URL} />
 
         <section className="bg-white px-5 py-2 shadow-sm ring-1 ring-stone-300 sm:px-6">
           {metadataRows(work).map((row) => (

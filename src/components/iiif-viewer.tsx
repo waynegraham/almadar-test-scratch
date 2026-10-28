@@ -1,19 +1,15 @@
 "use client";
 
 import { IiifThumbnail } from "@/components/iiif-thumbnail";
+import type { StrapiImage } from "@/lib/works";
 import type OpenSeadragonType from "openseadragon";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-type IiifImage = {
-  sequence?: number;
-  label?: string | null;
-  folioLabel?: string | null;
-  infoJsonUrl?: string | null;
-  cantaloupeIdentifier?: string | null;
-};
+type IiifImage = Omit<StrapiImage, "attributes">;
 
 type IiifViewerProps = {
   images: IiifImage[];
+  strapiBaseUrl: string;
 };
 
 type IiifTileSource = OpenSeadragonType.TileSourceOptions & {
@@ -31,7 +27,7 @@ function imageLabel(image: IiifImage, index: number) {
   );
 }
 
-export function IiifViewer({ images }: IiifViewerProps) {
+export function IiifViewer({ images, strapiBaseUrl }: IiifViewerProps) {
   const reactId = useId();
   const elementId = `iiif-viewer-${reactId.replace(/:/g, "")}`;
   const viewerRef = useRef<OpenSeadragonType.Viewer | null>(null);
@@ -42,8 +38,8 @@ export function IiifViewer({ images }: IiifViewerProps) {
     () => images.filter((image) => Boolean(image.infoJsonUrl)),
     [images],
   );
-  const activeTileSource =
-    viewableImages[activeIndex]?.infoJsonUrl ?? viewableImages[0]?.infoJsonUrl;
+  const activeImage = viewableImages[activeIndex] ?? viewableImages[0];
+  const activeTileSource = activeImage?.infoJsonUrl;
 
   useEffect(() => {
     if (!activeTileSource) {
@@ -179,60 +175,103 @@ export function IiifViewer({ images }: IiifViewerProps) {
 
   return (
     <section className="flex flex-col gap-3">
-      <div ref={wrapperRef} className="relative border border-stone-300 bg-black">
-        <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => zoomBy(1.25)}
-            aria-label="Zoom in"
-            className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={() => zoomBy(0.8)}
-            aria-label="Zoom out"
-            className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={goHome}
-            className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            Fit
-          </button>
-          <button
-            type="button"
-            onClick={toggleFullPage}
-            className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            {isFullPage ? "Exit" : "Full"}
-          </button>
-          {viewableImages.length > 1 ? (
-            <>
-              <button
-                type="button"
-                onClick={() => goToImage(activeIndex - 1)}
-                disabled={activeIndex === 0}
-                className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                onClick={() => goToImage(activeIndex + 1)}
-                disabled={activeIndex === viewableImages.length - 1}
-                className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
-              >
-                Next
-              </button>
-            </>
-          ) : null}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div ref={wrapperRef} className="relative min-w-0 border border-stone-300 bg-black">
+          <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => zoomBy(1.25)}
+              aria-label="Zoom in"
+              className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomBy(0.8)}
+              aria-label="Zoom out"
+              className="flex h-9 w-9 items-center justify-center border border-white/30 bg-black/75 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+            >
+              -
+            </button>
+            <button
+              type="button"
+              onClick={goHome}
+              className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+            >
+              Fit
+            </button>
+            <button
+              type="button"
+              onClick={toggleFullPage}
+              className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white"
+            >
+              {isFullPage ? "Exit" : "Full"}
+            </button>
+            {viewableImages.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => goToImage(activeIndex - 1)}
+                  disabled={activeIndex === 0}
+                  className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToImage(activeIndex + 1)}
+                  disabled={activeIndex === viewableImages.length - 1}
+                  className="flex h-9 items-center justify-center border border-white/30 bg-black/75 px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition-colors hover:bg-white hover:text-stone-950 focus:outline-none focus:ring-2 focus:ring-white disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/40 disabled:text-white/35"
+                >
+                  Next
+                </button>
+              </>
+            ) : null}
+          </div>
+          <div id={elementId} className="h-[70vh] min-h-[420px] w-full" />
         </div>
-        <div id={elementId} className="h-[70vh] min-h-[420px] w-full" />
+        <aside
+          aria-label="Selected image information"
+          aria-live="polite"
+          className="min-w-0 border border-stone-300 bg-white p-5"
+        >
+          <h2 className="text-lg font-semibold">Image information</h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Image {activeIndex + 1} of {viewableImages.length}
+          </p>
+           {activeImage.documentId ? (
+            <a
+              href={`${strapiBaseUrl}/admin/content-manager/collection-types/api::iiif-image.iiif-image/${encodeURIComponent(activeImage.documentId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-block text-sm font-medium underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+            >
+              Edit image in Strapi
+            </a>
+          ) : (
+            <p className="mt-6 text-sm text-stone-500">
+              Edit link unavailable: no document ID.
+            </p>
+          )}
+          <dl className="mt-5 space-y-4">
+            {([
+              "sourcePath",
+              "label",
+              "rightsNote",
+              "cantaloupeIdentifier",
+              "displayTitle",
+            ] as const).map((field) => (
+              <div key={field}>
+                <dt className="text-xs font-semibold text-stone-500">{field}</dt>
+                <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-stone-900 [overflow-wrap:anywhere]">
+                  {activeImage[field]?.trim() || "Not provided"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+         
+        </aside>
       </div>
       <div className="flex flex-wrap gap-3" aria-label="IIIF image list">
         {viewableImages.map((image, index) => {
