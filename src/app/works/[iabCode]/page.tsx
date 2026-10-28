@@ -1,6 +1,7 @@
 import { IiifViewer } from "@/components/iiif-viewer";
 import { CitationModal, type CitationModalData } from "@/components/citation-modal";
 import {
+  getAdjacentWorks,
   getWorkByIabCode,
   relationItems,
   STRAPI_BASE_URL,
@@ -269,6 +270,8 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
     notFound();
   }
 
+  const { previous, next } = await getAdjacentWorks(work.iabCode ?? decodedIabCode);
+
   return (
     <main className="min-h-screen bg-[#f7f5f0] text-stone-950">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">
@@ -295,7 +298,34 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
           </div>
         </header>
 
-        <IiifViewer images={work.images} strapiBaseUrl={STRAPI_BASE_URL} />
+        <nav aria-label="Work navigation" className="flex flex-wrap gap-3">
+          {([
+            { label: "Previous work", work: previous, rel: "prev" },
+            { label: "Next work", work: next, rel: "next" },
+          ] as const).map(({ label, work: adjacent, rel }) =>
+            adjacent ? (
+              <Link
+                key={rel}
+                href={`/works/${encodeURIComponent(adjacent.iabCode)}`}
+                rel={rel}
+                title={`${adjacent.iabCode} — ${adjacent.title}`}
+                className="border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+              >
+                {label}
+              </Link>
+            ) : (
+              <span
+                key={rel}
+                aria-disabled="true"
+                className="border border-stone-200 bg-stone-100 px-4 py-2 text-sm font-medium text-stone-400"
+              >
+                {label}
+              </span>
+            ),
+          )}
+        </nav>
+
+        <IiifViewer key={work.iabCode ?? decodedIabCode} images={work.images} strapiBaseUrl={STRAPI_BASE_URL} />
 
         <section className="bg-white px-5 py-2 shadow-sm ring-1 ring-stone-300 sm:px-6">
           {metadataRows(work).map((row) => (

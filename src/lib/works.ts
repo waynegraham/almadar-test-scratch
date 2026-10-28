@@ -399,6 +399,41 @@ export async function getWorks(page: number, codeSearch = "", edition = "") {
   };
 }
 
+export async function getAdjacentWorks(iabCode: string) {
+  const [previous, next] = await Promise.all(
+    (["previous", "next"] as const).map(async (direction) => {
+      const query = qs.stringify(
+        {
+          status: "published",
+          pagination: { page: 1, pageSize: 1 },
+          filters: {
+            iabCode: { [direction === "previous" ? "$lt" : "$gt"]: iabCode },
+          },
+          sort: [direction === "previous" ? "iabCode:desc" : "iabCode:asc"],
+          fields: ["iabCode", "displayTitle", "titleEn", "titleAr"],
+        },
+        { encodeValuesOnly: true },
+      );
+      const response = await strapiFetch(`${STRAPI_BASE_URL}/api/works?${query}`);
+
+      if (!response.ok) {
+        throw new Error(await strapiErrorMessage(response));
+      }
+
+      const payload = (await response.json()) as StrapiWorksResponse;
+      const work = payload.data?.[0];
+      if (!work) return undefined;
+
+      const item = unwrapAttributes(work);
+      return item.iabCode
+        ? { iabCode: item.iabCode, title: workTitle(item) }
+        : undefined;
+    }),
+  );
+
+  return { previous, next };
+}
+
 export async function getWorkByIabCode(iabCode: string) {
   const query = workDetailQuery(iabCode);
   const url = `${STRAPI_BASE_URL}/api/works?${query}`;

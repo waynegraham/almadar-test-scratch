@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
+  getAdjacentWorks,
   getWorkByIabCode,
   getWorks,
   IIIF_IMAGE_BASE_URL,
@@ -13,6 +14,42 @@ import { normalizeBaseUrl, normalizeStrapiBaseUrl } from "../src/lib/config";
 import { iiifImageUrlForIdentifier } from "../src/lib/iiif";
 
 const originalFetch = globalThis.fetch;
+
+test("getAdjacentWorks requests the closest published work in each direction", async () => {
+  const calls: URL[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    calls.push(url);
+    const query = url.searchParams;
+    const previous = query.has("filters[iabCode][$lt]");
+    assert.equal(query.get(`filters[iabCode][${previous ? "$lt" : "$gt"}]`), "25-G1-01-5034");
+    assert.equal(query.get("sort[0]"), previous ? "iabCode:desc" : "iabCode:asc");
+    assert.equal(query.get("status"), "published");
+    assert.equal(query.get("pagination[pageSize]"), "1");
+    return {
+      ok: true,
+      json: async () => ({ data: [{
+        iabCode: previous ? "25-G1-01-5033" : "25-G1-01-5035",
+        displayTitle: previous ? "Previous title" : "Next title",
+      }] }),
+    } as Response;
+  }) as typeof fetch;
+
+  const result = await getAdjacentWorks("25-G1-01-5034");
+
+  assert.equal(calls.length, 2);
+  assert.deepEqual(result.previous, { iabCode: "25-G1-01-5033", title: "Previous title" });
+  assert.deepEqual(result.next, { iabCode: "25-G1-01-5035", title: "Next title" });
+});
+
+test("getAdjacentWorks leaves unavailable neighbours empty at collection boundaries", async () => {
+  mockFetch({ data: [] });
+
+  assert.deepEqual(await getAdjacentWorks("23-001"), {
+    previous: undefined,
+    next: undefined,
+  });
+});
 
 test("worksQuery combines edition prefixes with partial code search", () => {
   for (const edition of ["23-", "25-"]) {
