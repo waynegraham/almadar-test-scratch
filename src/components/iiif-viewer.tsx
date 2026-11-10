@@ -1,5 +1,6 @@
 "use client";
 
+import { iiifImageUrlForIdentifier } from "@/lib/iiif";
 import { IiifThumbnail } from "@/components/iiif-thumbnail";
 import type { StrapiImage } from "@/lib/works";
 import type OpenSeadragonType from "openseadragon";
@@ -10,6 +11,7 @@ type IiifImage = Omit<StrapiImage, "attributes">;
 type IiifViewerProps = {
   images: IiifImage[];
   strapiBaseUrl: string;
+  iiifImageBaseUrl: string;
 };
 
 type IiifTileSource = OpenSeadragonType.TileSourceOptions & {
@@ -27,7 +29,7 @@ function imageLabel(image: IiifImage, index: number) {
   );
 }
 
-export function IiifViewer({ images, strapiBaseUrl }: IiifViewerProps) {
+export function IiifViewer({ images, strapiBaseUrl, iiifImageBaseUrl }: IiifViewerProps) {
   const reactId = useId();
   const elementId = `iiif-viewer-${reactId.replace(/:/g, "")}`;
   const viewerRef = useRef<OpenSeadragonType.Viewer | null>(null);
@@ -254,6 +256,35 @@ export function IiifViewer({ images, strapiBaseUrl }: IiifViewerProps) {
               Edit link unavailable: no document ID.
             </p>
           )}
+          <div className="mt-5 border-y border-stone-200 py-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Image source</h3>
+            <dl className="mt-3 space-y-3 text-sm">
+              <div>
+                <dt className="font-medium text-stone-600">IIIF image service</dt>
+                <dd className="mt-1 break-all font-mono text-xs text-stone-900">{iiifImageBaseUrl}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-stone-600">CMS record source</dt>
+                <dd className="mt-1 break-all font-mono text-xs text-stone-900">{strapiBaseUrl}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-stone-600">Image metadata (info.json)</dt>
+                <dd className="mt-1 break-all font-mono text-xs">
+                  <a href={activeTileSource ?? undefined} target="_blank" rel="noopener noreferrer" className="text-stone-900 underline underline-offset-4 hover:text-stone-600">{activeTileSource}</a>
+                </dd>
+              </div>
+            </dl>
+            {activeImage.cantaloupeIdentifier ? (
+              <a
+                href={iiifImageUrlForIdentifier(activeImage.cantaloupeIdentifier, { width: 1024, baseUrl: iiifImageBaseUrl })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-sm font-medium underline underline-offset-4"
+              >
+                Open image preview
+              </a>
+            ) : null}
+          </div>
           <dl className="mt-5 space-y-4">
             {([
               "sourcePath",
@@ -293,6 +324,7 @@ export function IiifViewer({ images, strapiBaseUrl }: IiifViewerProps) {
             >
               {image.cantaloupeIdentifier ? (
                 <IiifThumbnail
+                  baseUrl={iiifImageBaseUrl}
                   identifier={image.cantaloupeIdentifier}
                   widths={[160]}
                   format="png"

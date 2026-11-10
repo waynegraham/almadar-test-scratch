@@ -45,3 +45,29 @@ export const IIIF_SERVER_URL = normalizeBaseUrl(
 export const IIIF_IMAGE_BASE_URL = IIIF_SERVER_URL.endsWith("/iiif/3")
   ? IIIF_SERVER_URL
   : `${IIIF_SERVER_URL}/iiif/3`;
+
+export type EnvironmentConfig = {
+  strapiBaseUrl: string;
+  iiifImageBaseUrl: string;
+};
+
+export type Environment = "configured" | "staging" | "production";
+
+export function resolveEnvironment(value?: string): Environment {
+  return value === "production" || value === "configured" ? value : "staging";
+}
+
+export function getEnvironmentConfig(environment?: string): EnvironmentConfig {
+  if (environment === "staging" || environment === "production") {
+    const suffix = environment === "staging" ? "-staging" : "";
+    return {
+      strapiBaseUrl: `https://cms${suffix}-almadar.biennale.org.sa`,
+      iiifImageBaseUrl: `https://iiif${suffix}-almadar.biennale.org.sa/iiif/3`,
+    };
+  }
+
+  return {
+    strapiBaseUrl: STRAPI_BASE_URL,
+    iiifImageBaseUrl: IIIF_IMAGE_BASE_URL,
+  };
+}

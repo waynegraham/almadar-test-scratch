@@ -24,3 +24,16 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Keep the selected data source visible beyond the environment banner. */
+body[data-environment="staging"] > main {
+  background-color: #fffbeb;
+}
+
+body[data-environment="production"] > main {
+  background-color: #f0fdfa;
+}
+
+body[data-environment="configured"] > main {
+  background-color: #f1f5f9;
+}

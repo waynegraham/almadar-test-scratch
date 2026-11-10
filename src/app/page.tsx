@@ -1,6 +1,7 @@
+import { getRequestEnvironment } from "@/server/environment";
 import Link from "next/link";
 import { IiifThumbnail } from "@/components/iiif-thumbnail";
-import { getWorks, STRAPI_BASE_URL, worksQuery } from "@/lib/works";
+import { getWorks, worksQuery } from "@/lib/works";
 
 type PageSearchParams = Promise<{
   page?: string | string[];
@@ -135,6 +136,7 @@ export default async function Home({
 }: {
   searchParams: PageSearchParams;
 }) {
+  const { config } = await getRequestEnvironment();
   let data: Awaited<ReturnType<typeof getWorks>> | undefined;
   let error: string | undefined;
   const params = await searchParams;
@@ -145,7 +147,7 @@ export default async function Home({
   const fallbackQuery = worksQuery(requestedPage, codeSearch, edition);
 
   try {
-    data = await getWorks(requestedPage, codeSearch, edition);
+    data = await getWorks(requestedPage, codeSearch, edition, config);
   } catch (caught) {
     error = caught instanceof Error ? caught.message : "Unable to load works.";
   }
@@ -237,7 +239,7 @@ export default async function Home({
             <h2 className="font-semibold">Could not load Strapi data</h2>
             <p className="mt-2">{error}</p>
             <p className="mt-3 break-all text-amber-900">
-              Expected endpoint: {STRAPI_BASE_URL}/api/works?{fallbackQuery}
+              Expected endpoint: {config.strapiBaseUrl}/api/works?{fallbackQuery}
             </p>
           </section>
         ) : null}
@@ -263,6 +265,7 @@ export default async function Home({
                 <div className="aspect-[4/3] bg-stone-200">
                   {work.thumbnailIdentifier ? (
                     <IiifThumbnail
+                      baseUrl={config.iiifImageBaseUrl}
                       identifier={work.thumbnailIdentifier}
                       alt={work.imageLabel || work.title}
                       className="h-full w-full object-cover"

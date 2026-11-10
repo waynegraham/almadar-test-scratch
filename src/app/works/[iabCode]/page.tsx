@@ -1,10 +1,10 @@
+import { getRequestEnvironment } from "@/server/environment";
 import { IiifViewer } from "@/components/iiif-viewer";
 import { CitationModal, type CitationModalData } from "@/components/citation-modal";
 import {
   getAdjacentWorks,
   getWorkByIabCode,
   relationItems,
-  STRAPI_BASE_URL,
   type LocalizedValue,
   type StrapiAgentCredit,
   type StrapiNamedEntity,
@@ -262,15 +262,16 @@ function citationData(work: WorkDetail): CitationModalData {
 }
 
 export default async function WorkPage({ params }: { params: WorkPageParams }) {
+  const { config, environment } = await getRequestEnvironment();
   const { iabCode } = await params;
   const decodedIabCode = decodeURIComponent(iabCode);
-  const { url, work } = await getWorkByIabCode(decodedIabCode);
+  const { url, work } = await getWorkByIabCode(decodedIabCode, config);
 
   if (!work) {
     notFound();
   }
 
-  const { previous, next } = await getAdjacentWorks(work.iabCode ?? decodedIabCode);
+  const { previous, next } = await getAdjacentWorks(work.iabCode ?? decodedIabCode, config);
 
   return (
     <main className="min-h-screen bg-[#f7f5f0] text-stone-950">
@@ -325,7 +326,7 @@ export default async function WorkPage({ params }: { params: WorkPageParams }) {
           )}
         </nav>
 
-        <IiifViewer key={work.iabCode ?? decodedIabCode} images={work.images} strapiBaseUrl={STRAPI_BASE_URL} />
+        <IiifViewer key={`${environment}:${work.iabCode ?? decodedIabCode}`} images={work.images} strapiBaseUrl={config.strapiBaseUrl} iiifImageBaseUrl={config.iiifImageBaseUrl} />
 
         <section className="bg-white px-5 py-2 shadow-sm ring-1 ring-stone-300 sm:px-6">
           {metadataRows(work).map((row) => (

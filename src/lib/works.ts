@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import qs from "qs";
 import {
+  type EnvironmentConfig,
+  getEnvironmentConfig,
   STRAPI_API_TOKEN,
   STRAPI_BASE_URL,
   STRAPI_CLOUDFLARE_BYPASS_SECRET,
@@ -237,20 +239,20 @@ export function relationItems<T>(relation?: StrapiRelation<T>): T[] {
   return relation.data ?? [];
 }
 
-export function thumbnailUrlFor(image?: Omit<StrapiImage, "attributes">) {
+export function thumbnailUrlFor(image?: Omit<StrapiImage, "attributes">, baseUrl?: string) {
   if (!image?.cantaloupeIdentifier) {
     return undefined;
   }
 
-  return iiifImageUrlForIdentifier(image.cantaloupeIdentifier, { width: 256 });
+  return iiifImageUrlForIdentifier(image.cantaloupeIdentifier, { width: 256, baseUrl });
 }
 
-export function infoJsonUrlFor(image: Omit<StrapiImage, "attributes">) {
+export function infoJsonUrlFor(image: Omit<StrapiImage, "attributes">, baseUrl?: string) {
   if (!image.cantaloupeIdentifier) {
     return image.infoJsonUrl ?? undefined;
   }
 
-  return iiifInfoJsonUrlForIdentifier(image.cantaloupeIdentifier);
+  return iiifInfoJsonUrlForIdentifier(image.cantaloupeIdentifier, { baseUrl });
 }
 
 export function workTitle(work: Omit<StrapiWork, "attributes">) {
@@ -347,7 +349,7 @@ export function workDetailQuery(iabCode: string) {
   );
 }
 
-export function normalizeWork(work: StrapiWork): WorkCard {
+export function normalizeWork(work: StrapiWork, baseUrl?: string): WorkCard {
   const item = unwrapAttributes(work);
   const asset = relationItems(item.iiif_assets).map(unwrapAttributes).at(0);
   const image = relationItems(asset?.images).map(unwrapAttributes).at(0);
@@ -360,18 +362,18 @@ export function normalizeWork(work: StrapiWork): WorkCard {
     subtitle: asset?.title ?? undefined,
     imageLabel: image?.label ?? undefined,
     thumbnailIdentifier: image?.cantaloupeIdentifier ?? undefined,
-    thumbnailUrl: thumbnailUrlFor(image),
+    thumbnailUrl: thumbnailUrlFor(image, baseUrl),
   };
 }
 
-export function normalizeWorkDetail(work: StrapiWork): WorkDetail {
+export function normalizeWorkDetail(work: StrapiWork, baseUrl?: string): WorkDetail {
   const item = unwrapAttributes(work);
   const images = relationItems(item.iiif_assets)
     .map(unwrapAttributes)
     .flatMap((asset) => relationItems(asset.images).map(unwrapAttributes))
     .map((image) => ({
       ...image,
-      infoJsonUrl: infoJsonUrlFor(image),
+      infoJsonUrl: infoJsonUrlFor(image, baseUrl),
     }))
     .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
 
@@ -381,9 +383,9 @@ export function normalizeWorkDetail(work: StrapiWork): WorkDetail {
   };
 }
 
-export async function getWorks(page: number, codeSearch = "", edition = "") {
+export async function getWorks(page: number, codeSearch = "", edition = "", config: EnvironmentConfig = getEnvironmentConfig()) {
   const query = worksQuery(page, codeSearch, edition);
-  const url = `${STRAPI_BASE_URL}/api/works?${query}`;
+  const url = `${config.strapiBaseUrl}/api/works?${query}`;
   const response = await strapiFetch(url);
 
   if (!response.ok) {
@@ -394,12 +396,12 @@ export async function getWorks(page: number, codeSearch = "", edition = "") {
 
   return {
     url,
-    works: (payload.data ?? []).map(normalizeWork),
+    works: (payload.data ?? []).map((work) => normalizeWork(work, config.iiifImageBaseUrl)),
     pagination: payload.meta?.pagination,
   };
 }
 
-export async function getAdjacentWorks(iabCode: string) {
+export async function getAdjacentWorks(iabCode: string, config: EnvironmentConfig = getEnvironmentConfig()) {
   const [previous, next] = await Promise.all(
     (["previous", "next"] as const).map(async (direction) => {
       const query = qs.stringify(
@@ -414,7 +416,7 @@ export async function getAdjacentWorks(iabCode: string) {
         },
         { encodeValuesOnly: true },
       );
-      const response = await strapiFetch(`${STRAPI_BASE_URL}/api/works?${query}`);
+      const response = await strapiFetch(`${config.strapiBaseUrl}/api/works?${query}`);
 
       if (!response.ok) {
         throw new Error(await strapiErrorMessage(response));
@@ -434,9 +436,9 @@ export async function getAdjacentWorks(iabCode: string) {
   return { previous, next };
 }
 
-export async function getWorkByIabCode(iabCode: string) {
+export async function getWorkByIabCode(iabCode: string, config: EnvironmentConfig = getEnvironmentConfig()) {
   const query = workDetailQuery(iabCode);
-  const url = `${STRAPI_BASE_URL}/api/works?${query}`;
+  const url = `${config.strapiBaseUrl}/api/works?${query}`;
   const response = await strapiFetch(url);
 
   if (!response.ok) {
@@ -448,6 +450,6 @@ export async function getWorkByIabCode(iabCode: string) {
 
   return {
     url,
-    work: work ? normalizeWorkDetail(work) : undefined,
+    work: work ? normalizeWorkDetail(work, config.iiifImageBaseUrl) : undefined,
   };
 }

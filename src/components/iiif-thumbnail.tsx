@@ -10,12 +10,14 @@ type IiifThumbnailProps = Omit<
   "src" | "srcSet"
 > & {
   identifier: string;
+  baseUrl?: string;
   widths?: readonly number[];
   format?: "jpg" | "png";
 };
 
 export function IiifThumbnail({
   identifier,
+  baseUrl,
   widths = IIIF_THUMBNAIL_WIDTHS,
   format = "png",
   sizes = "(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw",
@@ -30,9 +32,10 @@ export function IiifThumbnail({
       {...props}
       src={iiifImageUrlForIdentifier(identifier, {
         width: fallbackWidth,
+        baseUrl,
         format,
       })}
-      srcSet={iiifThumbnailSrcSetForIdentifier(identifier, { widths, format })}
+      srcSet={iiifThumbnailSrcSetForIdentifier(identifier, { widths, format, baseUrl })}
       sizes={sizes}
       loading={loading}
       decoding={decoding}

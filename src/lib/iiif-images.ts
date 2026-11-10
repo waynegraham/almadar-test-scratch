@@ -1,8 +1,7 @@
+import { getEnvironmentConfig, type EnvironmentConfig } from "./config";
 import qs from "qs";
 
 export const IIIF_IMAGES_PAGE_SIZE = 160;
-export const IIIF_IMAGES_ENDPOINT =
-  "https://cms-staging-almadar.biennale.org.sa/api/iiif-images";
 
 type StrapiIiifAsset = {
   id?: number | string;
@@ -124,9 +123,9 @@ async function iiifImagesErrorMessage(response: Response) {
   }${bodySnippet ? `: ${bodySnippet}` : ""}`;
 }
 
-export async function getIiifImages(page: number) {
+export async function getIiifImages(page: number, config: EnvironmentConfig = getEnvironmentConfig()) {
   const query = iiifImagesQuery(page);
-  const url = `${IIIF_IMAGES_ENDPOINT}?${query}`;
+  const url = `${config.strapiBaseUrl}/api/iiif-images?${query}`;
   const response = await fetch(url, {
     cache: "no-store",
     headers: {

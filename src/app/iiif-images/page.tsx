@@ -1,8 +1,8 @@
+import { getRequestEnvironment } from "@/server/environment";
 import Link from "next/link";
 import { IiifThumbnail } from "@/components/iiif-thumbnail";
 import {
   getIiifImages,
-  IIIF_IMAGES_ENDPOINT,
   IIIF_IMAGES_PAGE_SIZE,
 } from "@/lib/iiif-images";
 
@@ -104,12 +104,13 @@ export default async function IiifImagesPage({
 }: {
   searchParams: PageSearchParams;
 }) {
+  const { config } = await getRequestEnvironment();
   let data: Awaited<ReturnType<typeof getIiifImages>> | undefined;
   let error: string | undefined;
   const requestedPage = currentPageFrom(await searchParams);
 
   try {
-    data = await getIiifImages(requestedPage);
+    data = await getIiifImages(requestedPage, config);
   } catch (caught) {
     error =
       caught instanceof Error ? caught.message : "Unable to load IIIF images.";
@@ -147,7 +148,7 @@ export default async function IiifImagesPage({
             <h2 className="font-semibold">Could not load IIIF images</h2>
             <p className="mt-2">{error}</p>
             <p className="mt-3 break-all text-amber-900">
-              Expected endpoint: {IIIF_IMAGES_ENDPOINT}
+              Expected endpoint: {config.strapiBaseUrl}/api/iiif-images
             </p>
           </section>
         ) : null}
@@ -177,6 +178,7 @@ export default async function IiifImagesPage({
                   <div className="aspect-square bg-stone-200">
                     {image.cantaloupeIdentifier ? (
                       <IiifThumbnail
+                        baseUrl={config.iiifImageBaseUrl}
                         identifier={image.cantaloupeIdentifier}
                         widths={[160, 320]}
                         format="png"
