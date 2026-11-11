@@ -27,7 +27,9 @@ uses the existing environment variables (`NEXT_PUBLIC_STRAPI_URL`,
 `https://cms-staging-almadar.biennale.org.sa` and
 `https://iiif-staging-almadar.biennale.org.sa`; production uses
 `https://cms-almadar.biennale.org.sa` and `https://iiif-almadar.biennale.org.sa`.
-Existing server-side API token and Cloudflare bypass settings continue to apply.
+The production CMS uses its public API without an Authorization header, even
+when `STRAPI_API_TOKEN` is configured. The token continues to apply to staging
+and other configured CMS hosts. Cloudflare bypass settings continue to apply.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

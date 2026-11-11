@@ -25,15 +25,24 @@ export {
   iiifThumbnailSrcSetForIdentifier,
 };
 
+function strapiApiToken(url: string) {
+  // Production exposes a public API. An invalid token causes Strapi to reject
+  // requests before it considers the public role's permissions.
+  return new URL(url).origin === getEnvironmentConfig("production").strapiBaseUrl
+    ? undefined
+    : STRAPI_API_TOKEN;
+}
+
 function strapiFetch(url: string) {
+  const apiToken = strapiApiToken(url);
   return fetch(url, {
     cache: "no-store",
     headers: {
       Accept: "application/json",
       "User-Agent": "almadar-test-scratch/1.0",
-      ...(STRAPI_API_TOKEN
+      ...(apiToken
         ? {
-            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${apiToken}`,
           }
         : {}),
       ...(STRAPI_CLOUDFLARE_BYPASS_SECRET
@@ -45,17 +54,18 @@ function strapiFetch(url: string) {
   });
 }
 
-async function strapiErrorMessage(response: Response) {
-  const tokenDiagnostics = STRAPI_API_TOKEN
+async function strapiErrorMessage(response: Response, url: string) {
+  const apiToken = strapiApiToken(url);
+  const tokenDiagnostics = apiToken
     ? [
         "yes",
-        `length: ${STRAPI_API_TOKEN.length}`,
+        `length: ${apiToken.length}`,
         `fingerprint: ${createHash("sha256")
-          .update(STRAPI_API_TOKEN)
+          .update(apiToken)
           .digest("hex")
           .slice(0, 12)}`,
-        `starts with Bearer: ${/^bearer\s+/i.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
-        `quoted: ${/^["']|["']$/.test(STRAPI_API_TOKEN) ? "yes" : "no"}`,
+        `starts with Bearer: ${/^bearer\s+/i.test(apiToken) ? "yes" : "no"}`,
+        `quoted: ${/^["']|["']$/.test(apiToken) ? "yes" : "no"}`,
       ].join(", ")
     : "no";
   const responseText = await response.text().catch(() => "");
@@ -389,7 +399,7 @@ export async function getWorks(page: number, codeSearch = "", edition = "", conf
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(await strapiErrorMessage(response));
+    throw new Error(await strapiErrorMessage(response, url));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
@@ -416,10 +426,11 @@ export async function getAdjacentWorks(iabCode: string, config: EnvironmentConfi
         },
         { encodeValuesOnly: true },
       );
-      const response = await strapiFetch(`${config.strapiBaseUrl}/api/works?${query}`);
+      const url = `${config.strapiBaseUrl}/api/works?${query}`;
+      const response = await strapiFetch(url);
 
       if (!response.ok) {
-        throw new Error(await strapiErrorMessage(response));
+        throw new Error(await strapiErrorMessage(response, url));
       }
 
       const payload = (await response.json()) as StrapiWorksResponse;
@@ -442,7 +453,7 @@ export async function getWorkByIabCode(iabCode: string, config: EnvironmentConfi
   const response = await strapiFetch(url);
 
   if (!response.ok) {
-    throw new Error(await strapiErrorMessage(response));
+    throw new Error(await strapiErrorMessage(response, url));
   }
 
   const payload = (await response.json()) as StrapiWorksResponse;
