@@ -12,19 +12,19 @@
   "dependencies": {
     "next": "16.2.9",
     "openseadragon": "^6.1.1",
-    "qs": "^6.17.0",
+    "qs": "^6.17.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^20.19.43",
     "@types/qs": "^6.15.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "16.2.9",
-    "tailwindcss": "^4.3.3",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "16.4.6",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3"
   }
 }

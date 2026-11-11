@@ -4,3 +4,11 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# eslint-config-next 16.4 adapts these plugins for ESLint 10. Their published
+# peer ranges still stop at v9; scope allowances to the verified versions.
+peerDependencyRules:
+  allowedVersions:
+    "eslint-plugin-import@2.32.0>eslint": "^10.14.0"
+    "eslint-plugin-jsx-a11y@6.10.2>eslint": "^10.14.0"
+    "eslint-plugin-react@7.37.5>eslint": "^10.14.0"
